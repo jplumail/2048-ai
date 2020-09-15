@@ -146,11 +146,14 @@ class Game:
 
     def isOver(self):
         if not self.isNotFull():
-            for i in range(4):
-                g2 = self.copy()
-                moved = g2.next(i)
-                if moved:
-                    return False
+            for i in range(self.size):
+                for j in range(self.size-1):
+                    if self.grid[i][j] == self.grid[i][j+1]:
+                        return False
+            for j in range(self.size):
+                for i in range(self.size-1):
+                    if self.grid[i][j] == self.grid[i+1][j]:
+                        return False
             return True
         return False
 
