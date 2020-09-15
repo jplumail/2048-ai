@@ -1,9 +1,8 @@
-import numpy as np
 import random
 import copy
 
 
-class Game():
+class Game:
     getVector = {0: [-1, 0], 1: [0, 1], 2: [1, 0], 3: [0, -1]}
     getDirectionName = {0: "UP", 1: "RIGHT", 2: "DOWN", 3: "LEFT"}
 
@@ -12,10 +11,10 @@ class Game():
         self.score = 0
 
     def setup(self):
-        self.grid = np.zeros((self.size, self.size), dtype=np.uint8)
+        self.grid = [[None] * self.size for i in range(self.size)]
         for i in range(2):
             self.addRandomTile()
-        
+
     def copy(self):
         return copy.deepcopy(self)
 
@@ -30,21 +29,30 @@ class Game():
     def insertTile(self, cellPosition, value):
         if cellPosition:
             i, j = cellPosition
-            self.grid[i, j] = value
+            self.grid[i][j] = value
 
     def chooseRandomAvailableCell(self):
         x, y = self.emptyCells()
         if len(x) == 0:
             return None
-        i = random.randint(0,len(x)-1)
+        i = random.randint(0, len(x) - 1)
         return x[i], y[i]
 
     def emptyCells(self):
-        x, y = (self.grid == 0).nonzero()
+        x, y = [], []
+        for i in range(self.size):
+            for j in range(self.size):
+                if not self.grid[i][j]:
+                    x.append(i)
+                    y.append(j)
         return x, y
 
     def isNotFull(self):
-        return (self.grid == 0).any()
+        for i in range(self.size):
+            for j in range(self.size):
+                if not self.grid[i][j]:
+                    return True
+        return False
 
     def swipe(self, direction):
         v_x, v_y = Game.getVector[direction]
@@ -52,7 +60,7 @@ class Game():
         moved1 = self.move(v_x, v_y, order_x, order_y)
         moved2 = self.merge(v_x, v_y, order_x, order_y)
         moved3 = self.move(v_x, v_y, order_x, order_y)
-        return (moved1 or moved2 or moved3)
+        return moved1 or moved2 or moved3
 
     def order(self, v_x, v_y):
         orderX = list(range(self.size))
@@ -67,7 +75,7 @@ class Game():
         moved = False
         for i in order_x:
             for j in order_y:
-                if self.grid[i, j] != 0:
+                if self.grid[i][j]:
                     m = self.moveTile(i, j, v_x, v_y)
                     moved = moved or m
         return moved
@@ -75,30 +83,27 @@ class Game():
     def moveTile(self, pos_x, pos_y, v_x, v_y):
         i, j = pos_x, pos_y
         moved = False
-        while not (
-            self.isNotInGrid(i + v_x, j + v_y)
-            or self.grid[i + v_x, j + v_y] > 0
-        ):
+        while not (self.isNotInGrid(i + v_x, j + v_y) or self.grid[i + v_x][j + v_y]):
             i = i + v_x
             j = j + v_y
             moved = True
-        tileValue = self.grid[pos_x, pos_y]
-        self.grid[pos_x, pos_y] = 0
-        self.grid[i, j] = tileValue
+        tileValue = self.grid[pos_x][pos_y]
+        self.grid[pos_x][pos_y] = None
+        self.grid[i][j] = tileValue
         return moved
 
     def merge(self, v_x, v_y, order_x, order_y):
         moved = False
         for i in order_x:
             for j in order_y:
-                if self.grid[i, j] != 0:
-                    tileValue = self.grid[i, j]
+                if self.grid[i][j]:
+                    tileValue = self.grid[i][j]
                     if self.isInGrid(i - v_x, j - v_y):
-                        neighborValue = self.grid[i - v_x, j - v_y]
+                        neighborValue = self.grid[i - v_x][j - v_y]
                         if neighborValue == tileValue:
-                            self.grid[i, j] = tileValue + 1
-                            self.score += 2**self.grid[i, j]
-                            self.grid[i - v_x, j - v_y] = 0
+                            self.grid[i][j] = tileValue + 1
+                            self.score += 2 ** self.grid[i][j]
+                            self.grid[i - v_x][j - v_y] = None
                             moved = True
         return moved
 
@@ -109,13 +114,29 @@ class Game():
         return (i >= self.size) or (i < 0) or (j >= self.size) or (j < 0)
 
     def display(self, direction):
-
-        powered = np.power(2,self.grid.astype(np.uint64))
-        print(powered - (powered == 1))
+        print("--------------------------")
+        for i in range(self.size):
+            line = "|"
+            for j in range(self.size):
+                tile = self.grid[i][j]
+                if tile:
+                    line += str(2 ** tile).center(6)
+                else:
+                    line += " " * 6
+            line += "|"
+            print(line)
+        print("--------------------------")
         print(Game.getDirectionName[direction])
 
     def equals(self, other):
-        return (self.grid == other.grid).all()
+        if self.size == other.size():
+            for i in range(self.size):
+                for j in range(self.size):
+                    if self.grid[i][j] != other.grid[i][j]:
+                        return False
+            return True
+        else:
+            return False
 
     def next(self, direction):
         moved = self.swipe(direction)
