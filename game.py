@@ -103,7 +103,9 @@ class Game:
     def isNotInGrid(self, i, j):
         return (i >= self.size) or (i < 0) or (j >= self.size) or (j < 0)
 
-    def display(self, direction):
+    def display(self, direction=None):
+        if direction is not None:
+            print(Game.getDirectionName[direction])
         print("--------------------------")
         for i in range(self.size):
             line = "|"
@@ -116,10 +118,9 @@ class Game:
             line += "|"
             print(line)
         print("--------------------------")
-        print(Game.getDirectionName[direction])
 
     def equals(self, other):
-        if self.size == other.size():
+        if self.size == other.size:
             for i in range(self.size):
                 for j in range(self.size):
                     if self.grid[i][j] != other.grid[i][j]:
@@ -133,58 +134,63 @@ class Game:
         if direction in possible:
             self.swipe(direction)
             self.addRandomTile()
-            return True
-        return False
+            over = False
+        else:
+            over = True
+        return over
 
     def possibleMoves(self):
-        possible = {}
-        i, j = 0, 0
-        while len(possible) < 4 and i < self.size and j < self.size - 1:
-            right_not_possible, left_not_possible = 1 not in possible, 3 not in possible
-            if right_not_possible or left_not_possible:
-                left, right = self.grid[i][j], self.grid[i][j + 1]
-                if left == right:
-                    possible.add(1)
-                    possible.add(3)
-                elif right_not_possible and left and (not right):
-                    possible.add(1)
-                elif left_not_possible and (not left) and right:
-                    possible.add(3)
+        possible = set()
+        i = 0
+        while len(possible) < 4 and i < self.size:
+            j = 0
+            while j < self.size - 1:
+                right_not_possible, left_not_possible = 1 not in possible, 3 not in possible
+                if right_not_possible or left_not_possible:
+                    left, right = self.grid[i][j], self.grid[i][j + 1]
+                    if left and (left == right):
+                        possible.add(1)
+                        possible.add(3)
+                    elif right_not_possible and left and (not right):
+                        possible.add(1)
+                    elif left_not_possible and (not left) and right:
+                        possible.add(3)
 
-            up_not_possible, bottom_not_possible = 0 not in possible, 2 not in possible
-            if up_not_possible or bottom_not_possible:
-                i, j = j, i
-                bottom, top = self.grid[i][j], self.grid[i + 1][j]
-                if bottom == top:
-                    possible.add(0)
-                    possible.add(2)
-                elif up_not_possible and bottom and (not top):
-                    possible.add(0)
-                elif bottom_not_possible and (not left) and right:
-                    possible.add(2)
-                i, j = j, i
+                up_not_possible, bottom_not_possible = 0 not in possible, 2 not in possible
+                if up_not_possible or bottom_not_possible:
+                    i, j = j, i
+                    bottom, top = self.grid[i][j], self.grid[i + 1][j]
+                    if bottom == top:
+                        possible.add(0)
+                        possible.add(2)
+                    elif up_not_possible and bottom and (not top):
+                        possible.add(0)
+                    elif bottom_not_possible and (not left) and right:
+                        possible.add(2)
+                    i, j = j, i
+                j += 1
             i += 1
-            j += 1
 
         return possible
 
     def run(self, agent, display=False):
         over = False
+        if display:
+            self.display()
         while not over:
             direction = agent.play(self)
             over = self.next(direction)
             if display:
                 self.display(direction)
         if display:
-            self.display(direction)
             print("Game over !\nVotre score : ", self.score)
         return self.score
 
 
 if __name__ == "__main__":
-    from agent import Human
+    from agent import MCTS
 
     g = Game(4)
     g.setup()
-    dumb_agent = Human("Jean")
+    dumb_agent = MCTS(0.5,UCT_param=10)
     print(g.run(dumb_agent, display=True))
