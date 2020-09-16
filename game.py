@@ -57,10 +57,9 @@ class Game:
     def swipe(self, direction):
         v_x, v_y = Game.getVector[direction]
         order_x, order_y = self.order(v_x, v_y)
-        moved1 = self.move(v_x, v_y, order_x, order_y)
-        moved2 = self.merge(v_x, v_y, order_x, order_y)
-        moved3 = self.move(v_x, v_y, order_x, order_y)
-        return moved1 or moved2 or moved3
+        self.move(v_x, v_y, order_x, order_y)
+        self.merge(v_x, v_y, order_x, order_y)
+        self.move(v_x, v_y, order_x, order_y)
 
     def order(self, v_x, v_y):
         orderX = list(range(self.size))
@@ -72,28 +71,21 @@ class Game:
         return orderX, orderY
 
     def move(self, v_x, v_y, order_x, order_y):
-        moved = False
         for i in order_x:
             for j in order_y:
                 if self.grid[i][j]:
-                    m = self.moveTile(i, j, v_x, v_y)
-                    moved = moved or m
-        return moved
+                    self.moveTile(i, j, v_x, v_y)
 
     def moveTile(self, pos_x, pos_y, v_x, v_y):
         i, j = pos_x, pos_y
-        moved = False
         while not (self.isNotInGrid(i + v_x, j + v_y) or self.grid[i + v_x][j + v_y]):
             i = i + v_x
             j = j + v_y
-            moved = True
         tileValue = self.grid[pos_x][pos_y]
         self.grid[pos_x][pos_y] = None
         self.grid[i][j] = tileValue
-        return moved
 
     def merge(self, v_x, v_y, order_x, order_y):
-        moved = False
         for i in order_x:
             for j in order_y:
                 if self.grid[i][j]:
@@ -104,8 +96,6 @@ class Game:
                             self.grid[i][j] = tileValue + 1
                             self.score += 2 ** self.grid[i][j]
                             self.grid[i - v_x][j - v_y] = None
-                            moved = True
-        return moved
 
     def isInGrid(self, i, j):
         return (i < self.size) and (i >= 0) and (j < self.size) and (j >= 0)
@@ -139,30 +129,52 @@ class Game:
             return False
 
     def next(self, direction):
-        moved = self.swipe(direction)
-        if moved:
+        possible = self.possibleMoves()
+        if direction in possible:
+            self.swipe(direction)
             self.addRandomTile()
-        return moved
-
-    def isOver(self):
-        if not self.isNotFull():
-            for i in range(self.size):
-                for j in range(self.size-1):
-                    if self.grid[i][j] == self.grid[i][j+1]:
-                        return False
-            for j in range(self.size):
-                for i in range(self.size-1):
-                    if self.grid[i][j] == self.grid[i+1][j]:
-                        return False
             return True
         return False
 
+    def possibleMoves(self):
+        possible = {}
+        i, j = 0, 0
+        while len(possible) < 4 and i < self.size and j < self.size - 1:
+            right_not_possible, left_not_possible = 1 not in possible, 3 not in possible
+            if right_not_possible or left_not_possible:
+                left, right = self.grid[i][j], self.grid[i][j + 1]
+                if left == right:
+                    possible.add(1)
+                    possible.add(3)
+                elif right_not_possible and left and (not right):
+                    possible.add(1)
+                elif left_not_possible and (not left) and right:
+                    possible.add(3)
+
+            up_not_possible, bottom_not_possible = 0 not in possible, 2 not in possible
+            if up_not_possible or bottom_not_possible:
+                i, j = j, i
+                bottom, top = self.grid[i][j], self.grid[i + 1][j]
+                if bottom == top:
+                    possible.add(0)
+                    possible.add(2)
+                elif up_not_possible and bottom and (not top):
+                    possible.add(0)
+                elif bottom_not_possible and (not left) and right:
+                    possible.add(2)
+                i, j = j, i
+            i += 1
+            j += 1
+
+        return possible
+
     def run(self, agent, display=False):
-        while not self.isOver():
+        over = False
+        while not over:
             direction = agent.play(self)
+            over = self.next(direction)
             if display:
                 self.display(direction)
-            self.next(direction)
         if display:
             self.display(direction)
             print("Game over !\nVotre score : ", self.score)
