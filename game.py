@@ -17,6 +17,13 @@ class Game:
 
     def copy(self):
         return copy.deepcopy(self)
+    
+    def __deepcopy__(self, memodict={}):
+        copy_object = Game(self.size)
+        copy_object.grid = [[v for v in row] for row in self.grid]
+        copy_object.score = self.score
+
+        return copy_object
 
     def addRandomTile(self):
         if random.random() < 0.9:
@@ -160,12 +167,12 @@ class Game:
                 if up_not_possible or bottom_not_possible:
                     i, j = j, i
                     bottom, top = self.grid[i][j], self.grid[i + 1][j]
-                    if bottom == top:
+                    if bottom and bottom == top:
                         possible.add(0)
                         possible.add(2)
                     elif up_not_possible and bottom and (not top):
                         possible.add(0)
-                    elif bottom_not_possible and (not left) and right:
+                    elif bottom_not_possible and (not bottom) and top:
                         possible.add(2)
                     i, j = j, i
                 j += 1
