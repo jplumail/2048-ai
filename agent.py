@@ -56,12 +56,9 @@ class MCTS(Agent):
         max_avg_score = 0
         for move in list(root[3]):
             child = root[3][move]
-            #print(move, " : ", child[0] / (1 + child[1]))
             if child[0] / (1 + child[1]) > max_avg_score:
                 max_avg_score = child[0] / (1 + child[1])
                 best_move = move
-        #print(self.getDepth(self.tree[None]))
-        #print("Number of Monte Carlo simulations : ", self.tree[None][1])
 
         return best_move
 
@@ -129,3 +126,83 @@ class MCTS(Agent):
             node = node[3][move]
         node[0] += score
         node[1] += 1
+
+
+class MCTS2(Agent):
+    def __init__(self, max_iter=10):
+        self.max_iter = max_iter
+        self.dummy = Dummy()
+
+    def play(self, game):
+        moves = game.possibleMoves()
+        i = 0
+        scores = [0] * 4
+        while i < self.max_iter:
+            for move in moves:
+                g = game.copy()
+                g.next(move)
+                scores[move] += g.run(self.dummy)
+            i += 1
+        max_score = 0
+        best_move = 0
+        for move, score in enumerate(scores):
+            if score > max_score:
+                max_score = score
+                best_move = move
+
+        return best_move
+
+
+class Expectiminimax(Agent):
+    def __init__(self, max_depth=10):
+        self.max_depth = max_depth
+
+    def play(self, game):
+        root = {"random_event": False, "game_state": game}
+        best_move, _ = self.expectiminimax(root, 0)
+        if best_move is None:
+            best_move = 0
+        return best_move
+
+    def randomEvents(self, game):
+        x, y = game.emptyCells()
+        n = len(x)
+        children = []
+        for i, j in zip(x, y):
+            g1 = game.copy()
+            g2 = game.copy()
+            g1.insertTile((i, j), 1)
+            g2.insertTile((i, j), 2)
+            children.append((0.9 / n, {"random_event": False, "game_state": g1}))
+            children.append((0.1 / n, {"random_event": False, "game_state": g2}))
+        return children
+
+    def heuristic(self, game):
+        return game.score
+
+    def expectiminimax(self, node, depth):
+        if depth == self.max_depth:
+            return None, self.heuristic(node["game_state"])
+        if node["random_event"]:
+            possible_game_states = self.randomEvents(node["game_state"])
+            alpha = 0
+            for probability, child_node in possible_game_states:
+                alpha += probability * self.expectiminimax(child_node, depth + 1)[1]
+            return None, alpha
+        else:
+            moves = node["game_state"].possibleMoves()
+            if len(moves) == 0:
+                return None, self.heuristic(node["game_state"])
+            else:
+                moves = node["game_state"].possibleMoves()
+                alpha = -1
+                for move in moves:
+                    game = node["game_state"].copy()
+                    game.swipe(move)
+                    child_node = {"random_event": True, "game_state": game}
+                    _, alpha_child = self.expectiminimax(child_node, depth + 1)
+                    if alpha_child > alpha:
+                        alpha = alpha_child
+                        best_move = move
+                return best_move, alpha
+
