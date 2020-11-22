@@ -21,11 +21,11 @@ def addRandomTile(grid):
     else:
         tileValue = 2
     i, j = chooseRandomAvailableCell(grid)
-    insertTile(grid, i, j, tileValue)
+    if (i,j) is not (None, None):
+        insertTile(grid, i, j, tileValue)
 
 def insertTile(grid, i, j, value):
-    if i:
-        grid[i][j] = value
+    grid[i][j] = value
 
 def chooseRandomAvailableCell(grid):
     x, y = emptyCells(grid)
@@ -169,11 +169,11 @@ def run(grid, agent, display=False):
     if display:
         show(grid)
     while not over:
-        print(possibleMoves(grid))
         direction = agent.play(grid)
         over = next(grid, direction)
         if display:
             show(grid, direction)
+            print(possibleMoves(grid))
     final_score = getScore(grid)
     if display:
         print("Game over !\nVotre score : ", final_score)
@@ -181,9 +181,9 @@ def run(grid, agent, display=False):
 
 
 if __name__ == "__main__":
-    from agent import Dummy
+    from agent import Expectiminimax, MCTS
 
     g = init_grid(4)
     setup(g)
-    dumb_agent = Dummy()
-    print(run(g, dumb_agent, display=True))
+    a = Expectiminimax(max_depth=4)
+    print(run(g, a, display=True))

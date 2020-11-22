@@ -155,7 +155,7 @@ class MCTS2(Agent):
 
 
 class Expectiminimax(Agent):
-    def __init__(self, max_depth=10):
+    def __init__(self, max_depth=4):
         self.max_depth = max_depth
 
     def play(self, grid):
